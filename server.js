@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const db = require('./database')
 
 const indexHtmlFile = fs.readFileSync(path.join(__dirname, 'static', 'index.html'));
 const StyleFile = fs.readFileSync(path.join(__dirname, 'static', 'style.css'));
@@ -19,9 +20,17 @@ const server = http.createServer((req,res) => {
 server.listen(3000);
 const { Server } = require("socket.io");
 const io = new Server(server);
-io.on('connection', (socket) => {
+
+io.on('connection', async (socket) => {
     console.log('a user connected. id - ' + socket.id) ;
-    socket.on('new_message', (message) => {
-        io.emit('message', message);
-    })
-});
+    
+        let userNickname = 'admin';
+        let messages = await db.getMessages();
+
+        socket.emit('all_messages', messages);
+
+        socket.on('new_message', (message) => {
+            db.addMessage(message, 1);
+            io.emit('message', userNickname + ' : ' + message);
+        });
+    });
